@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SigVerify AI — ML Signature Verification System</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+</head>
+
+<body>
+
+    <!-- ═══════════════════════════ HERO TITLE ═══════════════════════════ -->
+    <header class="hero">
+        <div class="hero-badge">
+            <i class="ti ti-cpu"></i> Machine Learning Project &mdash; B.Tech CSE
+        </div>
+        <h1 class="hero-title">
+            <span class="title-sig">Sig</span><span class="title-verify">Verify</span>
+            <span class="title-ai">AI</span>
+        </h1>
+        <p class="hero-sub">ML-Based Handwritten Signature Verification System</p>
+        <p class="hero-desc">
+            OpenCV &bull; Random Forest &bull; Feature Engineering &bull; Biometric Authentication
+        </p>
+        <div class="hero-pills">
+            <span class="hpill purple"><i class="ti ti-shield-check"></i> 94.2% Accuracy</span>
+            <span class="hpill teal"><i class="ti ti-chart-bar"></i> F1-score 93.8%</span>
+            <span class="hpill amber"><i class="ti ti-layers"></i> 10-D Feature Vector</span>
+            <span class="hpill pink"><i class="ti ti-trees"></i> 100 Decision Trees</span>
+        </div>
+    </header>
+
+    <!-- ═══════════════════════════ NAV TABS ═══════════════════════════ -->
+    <nav class="nav">
+        <button class="nb active" data-tab="verify" onclick="sw('verify')">
+            <i class="ti ti-shield-check"></i> Verify
+        </button>
+        <button class="nb" data-tab="pipeline" onclick="sw('pipeline')">
+            <i class="ti ti-cpu"></i> Pipeline
+        </button>
+        <button class="nb" data-tab="model" onclick="sw('model')">
+            <i class="ti ti-chart-bar"></i> Model
+        </button>
+        <button class="nb" data-tab="learn" onclick="sw('learn')">
+            <i class="ti ti-book"></i> Learn
+        </button>
+    </nav>
+
+    <!-- ═══════════════════════════ TAB: VERIFY ═══════════════════════════ -->
+    <section class="panel active" id="tab-verify">
+
+        <div class="card">
+            <div class="hdr purple"><i class="ti ti-upload"></i> Upload a signature to verify</div>
+            <div class="upload-zone" id="dropzone" onclick="document.getElementById('file-inp').click()"
+                ondragover="event.preventDefault();this.classList.add('drag')"
+                ondragleave="this.classList.remove('drag')" ondrop="onDrop(event)">
+                <i class="ti ti-signature"></i>
+                <p>Click to upload or drag &amp; drop your signature image</p>
+                <p class="sub">PNG &bull; JPG &bull; BMP &mdash; white background works best</p>
+                <input type="file" id="file-inp" accept="image/*" onchange="handleFile(this.files[0])" />
+            </div>
+            <div class="btn-row">
+                <button class="demo-btn g" onclick="runDemo('genuine')">
+                    <i class="ti ti-file-check"></i> Demo: Genuine
+                </button>
+                <button class="demo-btn f" onclick="runDemo('forged')">
+                    <i class="ti ti-file-x"></i> Demo: Forged
+                </button>
+                <button class="demo-btn rst" onclick="resetAll()">
+                    <i class="ti ti-refresh"></i> Reset
+                </button>
+            </div>
+        </div>
+
+        <div class="two-col" id="canvas-row" style="display:none">
+            <div class="img-card orig">
+                <div class="img-card-title"><i class="ti ti-photo"></i> Original</div>
+                <canvas id="cv-orig" height="110"></canvas>
+            </div>
+            <div class="img-card proc">
+                <div class="img-card-title"><i class="ti ti-adjustments"></i> Preprocessed (binary)</div>
+                <canvas id="cv-proc" height="110"></canvas>
+            </div>
+        </div>
+
+        <div id="log-wrap" style="display:none">
+            <div class="hdr teal"><i class="ti ti-terminal"></i> OpenCV processing log</div>
+            <div class="log" id="proc-log"></div>
+        </div>
+
+        <div class="card" id="feat-card" style="display:none">
+            <div class="hdr amber"><i class="ti ti-list-numbers"></i> Extracted feature vector (10 dimensions)</div>
+            <div id="feat-bars"></div>
+        </div>
+
+        <div id="result-box" class="result-box waiting">
+            <i class="ti ti-hourglass result-icon" id="res-icon"></i>
+            <div class="result-label" id="res-label">Upload a signature to begin</div>
+            <div class="result-sub" id="res-sub">The classifier will output Genuine or Forged with a confidence score
+            </div>
+            <div class="conf-row" id="conf-row" style="display:none">
+                <span class="conf-lbl" id="conf-lbl">Confidence</span>
+                <div class="conf-bar-track">
+                    <div class="conf-bar-fill" id="conf-fill" style="width:0%"></div>
+                </div>
+                <span class="conf-pct" id="conf-pct">0%</span>
+            </div>
+        </div>
+
+        <div id="detail-cards" style="display:none">
+            <div class="stat-grid" id="stat-grid"></div>
+            <button class="ask-btn" onclick="alert('Connect Claude API to enable this feature.')">
+                <i class="ti ti-school"></i> Explain these features to me &rarr;
+            </button>
+        </div>
+
+    </section>
+
+    <!-- ═══════════════════════════ TAB: PIPELINE ═══════════════════════════ -->
+    <section class="panel" id="tab-pipeline">
+        <div class="card">
+            <div class="hdr teal"><i class="ti ti-git-branch"></i> OpenCV preprocessing steps</div>
+            <div id="pipe-list"></div>
+        </div>
+        <div class="card">
+            <div class="hdr amber"><i class="ti ti-variable"></i> Feature extraction table</div>
+            <div id="feat-table"></div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════ TAB: MODEL ═══════════════════════════ -->
+    <section class="panel" id="tab-model">
+        <div class="metric-grid">
+            <div class="mcard purple">
+                <div class="ml">Accuracy</div>
+                <div class="mv">94.2%</div>
+            </div>
+            <div class="mcard teal">
+                <div class="ml">Precision</div>
+                <div class="mv">93.5%</div>
+            </div>
+            <div class="mcard amber">
+                <div class="ml">Recall</div>
+                <div class="mv">94.1%</div>
+            </div>
+            <div class="mcard pink">
+                <div class="ml">F1-score</div>
+                <div class="mv">93.8%</div>
+            </div>
+        </div>
+        <div class="two-col">
+            <div class="card">
+                <div class="hdr pink"><i class="ti ti-table"></i> Confusion matrix</div>
+                <div class="cm-wrap">
+                    <div></div>
+                    <div class="cm-c cm-head-blue">Pred: genuine</div>
+                    <div class="cm-c cm-head-amber">Pred: forged</div>
+                    <div class="cm-axis">Actual: genuine</div>
+                    <div class="cm-c cm-tp">57 TP</div>
+                    <div class="cm-c cm-fn">3 FN</div>
+                    <div class="cm-axis">Actual: forged</div>
+                    <div class="cm-c cm-fp">4 FP</div>
+                    <div class="cm-c cm-tn">56 TN</div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="hdr coral"><i class="ti ti-database"></i> Dataset split</div>
+                <table class="ds-table">
+                    <thead>
+                        <tr>
+                            <th>Split</th>
+                            <th class="green-h">Genuine</th>
+                            <th class="red-h">Forged</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Train</td>
+                            <td class="green-v">480</td>
+                            <td class="red-v">480</td>
+                        </tr>
+                        <tr>
+                            <td>Validation</td>
+                            <td class="green-v">60</td>
+                            <td class="red-v">60</td>
+                        </tr>
+                        <tr>
+                            <td>Test</td>
+                            <td class="green-v">60</td>
+                            <td class="red-v">60</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card">
+            <div class="hdr blue"><i class="ti ti-tournament"></i> Classifier comparison</div>
+            <div id="clf-list"></div>
+        </div>
+        <div class="card">
+            <div class="hdr amber"><i class="ti ti-adjustments-horizontal"></i> Hyperparameter simulator</div>
+            <div class="slider-group">
+                <div class="slider-row">
+                    <label>Train/test split</label>
+                    <input type="range" min="60" max="90" value="80" step="5" id="sl-split" oninput="simUpdate()" />
+                    <span id="sl-split-v">80%</span>
+                </div>
+                <div class="slider-row">
+                    <label>n_estimators</label>
+                    <input type="range" min="10" max="200" value="100" step="10" id="sl-ne" oninput="simUpdate()" />
+                    <span id="sl-ne-v">100</span>
+                </div>
+                <div class="slider-row">
+                    <label>Max depth</label>
+                    <input type="range" min="2" max="20" value="8" step="1" id="sl-md" oninput="simUpdate()" />
+                    <span id="sl-md-v">8</span>
+                </div>
+            </div>
+            <div id="sim-out"></div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════ TAB: LEARN ═══════════════════════════ -->
+    <section class="panel" id="tab-learn">
+        <div class="card">
+            <div class="hdr purple"><i class="ti ti-bulb"></i> What is signature verification?</div>
+            <p class="body-text">
+                Signature verification is a <strong>biometric authentication</strong> task. We classify signatures as
+                <span class="pill g">Genuine</span> or <span class="pill r">Forged</span> using extracted image
+                features.
+                Two approaches: <span class="pill b">Offline</span> (image-based &mdash; this system) and
+                <span class="pill p">Online</span> (pen speed + pressure in real time).
+                Forgery types: <span class="pill a">Random</span>, <span class="pill a">Simple</span>, and
+                <span class="pill a">Skilled</span> (hardest to detect).
+            </p>
+        </div>
+        <div class="card">
+            <div class="hdr teal"><i class="ti ti-steps"></i> End-to-end system flow</div>
+            <div id="e2e"></div>
+        </div>
+        <div class="card">
+            <div class="hdr pink"><i class="ti ti-math-function"></i> Key formulas (memorise for viva!)</div>
+            <div id="formula-list"></div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════ FOOTER ═══════════════════════════ -->
+    <footer class="footer">
+        <span><i class="ti ti-code"></i> SigVerify AI &mdash; B.Tech CSE ML Project</span>
+        <span>Built with OpenCV &bull; scikit-learn &bull; Python</span>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
